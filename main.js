@@ -2,62 +2,65 @@ let http = require('http');
 let fs = require('fs');
 let url = require('url');
 
-let app = http.createServer((request, response) => {
-    let requestUrl = request.url;
-    let queryData = url.parse(requestUrl, true).query;
-    let pathName = url.parse(requestUrl, true).pathname;
-    
-
-
-    if (pathName === '/') {
-        if (queryData.id === undefined) {
-            let title = 'Welcome!';
-            let description = 'Hello, Node.js!';
-            let template = `
-                <!doctype html>
-                <html>
-                <head>
-                <title>WEB1 - ${title}</title>
-                <meta charset="utf-8">
-                </head>
-                <body>
-                <h1><a href="/">WEB</a></h1>
-                <ol>
-                    <li><a href="/?id=HTML">HTML</a></li>
-                    <li><a href="/?id=CSS">CSS</a></li>
-                    <li><a href="/?id=JavaScript">JavaScript</a></li>
-                </ol>
-                <h2>${title}</h2>
-                <p>${description}</p>
-                </body>
-                </html>
-            `;
-            response.writeHead(200);
-            response.end(template);
-        } else {
-            fs.readFile(`data/${queryData.id}`, `utf8`, (err, description) => {
-                let title = queryData.id;
-                let template = `
+function templateHTML(_title, _list, _body) {
+    let temp = `
                     <!doctype html>
                     <html>
                     <head>
-                    <title>WEB1 - ${title}</title>
+                    <title>WEB1 - ${_title}</title>
                     <meta charset="utf-8">
                     </head>
                     <body>
                     <h1><a href="/">WEB</a></h1>
-                    <ol>
-                        <li><a href="/?id=HTML">HTML</a></li>
-                        <li><a href="/?id=CSS">CSS</a></li>
-                        <li><a href="/?id=JavaScript">JavaScript</a></li>
-                    </ol>
-                    <h2>${title}</h2>
-                    <p>${description}</p>
+                    ${_list}
+                    ${_body}
                     </body>
                     </html>
                 `;
+    return temp;
+}
+
+function templateList(_fileList) {
+    let list = '<ol>';
+    for (let i = 0; i < _fileList.length; i++) {
+        list = list + `<li><a href="/?id=${_fileList[i]}">${_fileList[i]}</a></li>`;
+    }
+    list = list + '</ol>';
+
+    return list;
+}
+
+let app = http.createServer((request, response) => {
+    let requestUrl = request.url;
+    let queryData = url.parse(requestUrl, true).query;
+    let pathName = url.parse(requestUrl, true).pathname;
+
+    if (pathName === '/') {
+        if (queryData.id === undefined) {
+
+            fs.readdir('./data', (error, fileList) => {
+
+                let title = 'Welcome!';
+                let description = 'Hello, Node.js!';
+                let list = templateList(fileList);
+
+                let template = templateHTML(title, list, `<h2>${title}</h2>${description}`);
                 response.writeHead(200);
                 response.end(template);
+
+            });
+
+
+        } else {
+            fs.readdir('./data', (error, fileList) => {
+                let list = templateList(fileList);
+
+                fs.readFile(`data/${queryData.id}`, `utf8`, (err, description) => {
+                    let title = queryData.id;
+                    let template = templateHTML(title, list, `<h2>${title}</h2>${description}`);
+                    response.writeHead(200);
+                    response.end(template);
+                });
             });
         }
     } else {
